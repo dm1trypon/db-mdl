@@ -1,6 +1,7 @@
 package dbpgconnector
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/dm1trypon/db-mdl/dbpgtools"
 	logger "github.com/dm1trypon/easy-logger"
+	_ "github.com/lib/pq"
 )
 
 const MaxTxIsolationLvl = 7
@@ -17,12 +19,12 @@ func (d *DBPGConnector) Create() *DBPGConnector {
 	d = &DBPGConnector{
 		lc:   "DB_PG_CONNECTOR",
 		conn: nil,
-		ctx:  nil,
+		ctx:  context.Background(),
 		config: Config{
 			Username:             "user",
 			Password:             "password",
 			Host:                 "localhost",
-			Port:                 3306,
+			Port:                 5432,
 			DbName:               "db_test",
 			ConnectTimeout:       10,
 			PingInterval:         time.Second,
@@ -48,12 +50,7 @@ func (d *DBPGConnector) Create() *DBPGConnector {
 			2: "verify-ca",
 			3: "verify-full",
 		},
-		dbPgToolsList: map[sql.TxOptions]*dbpgtools.DBPGTools{
-			{
-				Isolation: 0,
-				ReadOnly:  false,
-			}: new(dbpgtools.DBPGTools).Create(d.conn, d.ctx, sql.TxOptions{Isolation: 0, ReadOnly: false}),
-		},
+		dbPgToolsList: map[sql.TxOptions]*dbpgtools.DBPGTools{},
 	}
 
 	return d
@@ -145,8 +142,9 @@ func (d *DBPGConnector) inspector() {
 				logger.ErrorJ(d.lc, fmt.Sprint("Connection close error: ", err.Error()))
 			}
 
+			time.Sleep(d.config.PingInterval)
 			d.Run()
-			break
+			return
 		}
 
 		time.Sleep(d.config.PingInterval)
