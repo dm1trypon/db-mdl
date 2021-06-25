@@ -10,12 +10,14 @@ import (
 
 // DBPGConnector - main struct of the DB's module
 type DBPGConnector struct {
-	lc            string  // logging category
-	conn          *sql.DB // data of DBPG connection
-	ctx           context.Context
-	config        Config // DBPG settings
-	sslModes      map[uint8]string
-	dbPgToolsList map[sql.TxOptions]*dbpgtools.DBPGTools
+	lc             string  // logging category
+	conn           *sql.DB // data of DBPG connection
+	ctx            context.Context
+	config         Config // DBPG settings
+	sslModes       map[uint8]string
+	chConnected    chan bool
+	chDisconnected chan bool
+	dbPgToolsList  map[sql.TxOptions]*dbpgtools.DBPGTools
 }
 
 // Config - DBPG settings

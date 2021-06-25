@@ -44,6 +44,8 @@ func (d *DBPGConnector) Create() *DBPGConnector {
 				},
 			},
 		},
+		chConnected:    make(chan bool),
+		chDisconnected: make(chan bool),
 		sslModes: map[uint8]string{
 			0: "disable",
 			1: "require",
@@ -56,10 +58,20 @@ func (d *DBPGConnector) Create() *DBPGConnector {
 	return d
 }
 
+func (d *DBPGConnector) GetChConnected() <-chan bool {
+	return d.chConnected
+}
+
+func (d *DBPGConnector) GetChDisconnected() <-chan bool {
+	return d.chDisconnected
+}
+
 func (d *DBPGConnector) SetDBPGToolsList(settings map[uint8]bool) {
 	if len(d.dbPgToolsList) > 0 {
 		d.dbPgToolsList = map[sql.TxOptions]*dbpgtools.DBPGTools{}
 	}
+
+	logger.DebugJ(d.lc, fmt.Sprint("SetDBPGToolsList"))
 
 	for isolation, ro := range settings {
 		if isolation > MaxTxIsolationLvl {
@@ -77,10 +89,10 @@ func (d *DBPGConnector) SetDBPGToolsList(settings map[uint8]bool) {
 }
 
 func (d *DBPGConnector) GetDBPGTools(isolationLvl uint8, ro bool) *dbpgtools.DBPGTools {
-	for txOptions := range d.dbPgToolsList {
+	for txOptions, dbPgTool := range d.dbPgToolsList {
 		if txOptions.Isolation == sql.IsolationLevel(isolationLvl) &&
 			txOptions.ReadOnly == ro {
-			return d.dbPgToolsList[txOptions]
+			return dbPgTool
 		}
 	}
 
@@ -143,6 +155,7 @@ func (d *DBPGConnector) inspector() {
 			}
 
 			time.Sleep(d.config.PingInterval)
+			d.chDisconnected <- true
 			d.Run()
 			return
 		}
@@ -179,9 +192,17 @@ func (d *DBPGConnector) RunOnce() bool {
 		return false
 	}
 
+	if err := d.conn.PingContext(d.ctx); err != nil {
+		logger.ErrorJ(d.lc, fmt.Sprint("Connection failed: ", err.Error()))
+		d.conn.Close()
+		return false
+	}
+
 	logger.InfoJ(d.lc, "Connected")
 
 	go d.inspector()
+
+	d.chConnected <- true
 
 	return true
 }

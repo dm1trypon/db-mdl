@@ -56,6 +56,8 @@ func (d *DBPGTools) Transaction(queries []string) (int, bool) {
 }
 
 func (d *DBPGTools) Query(query string) (*sql.Rows, bool) {
+	logger.DebugJ(d.lc, fmt.Sprint("Query: ", query))
+
 	if d.conn == nil {
 		logger.ErrorJ(d.lc, "Connection is down")
 		return nil, false
@@ -67,10 +69,12 @@ func (d *DBPGTools) Query(query string) (*sql.Rows, bool) {
 		return nil, false
 	}
 
-	return sqlRows, false
+	return sqlRows, true
 }
 
 func (d *DBPGTools) Exec(query string) (sql.Result, bool) {
+	logger.DebugJ(d.lc, fmt.Sprint("Executing query: ", query))
+
 	if d.conn == nil {
 		logger.ErrorJ(d.lc, "Connection is down")
 		return nil, false

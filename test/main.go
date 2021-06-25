@@ -21,9 +21,8 @@ func main() {
 
 	logger.InfoJ(LC, "STARTING SERVICE")
 
-	stop := make(chan int)
-
 	dbPgConnInst := new(dbpgconnector.DBPGConnector).Create()
+
 	cfg := dbpgconnector.Config{
 		Username:             "postgres",
 		Password:             "mpassword",
@@ -37,12 +36,21 @@ func main() {
 		Certs:                dbpgconnector.Certs{},
 	}
 	dbPgConnInst.SetConfig(cfg)
-	dbPgConnInst.Run()
+
+	go dbPgConnInst.Run()
+	<-dbPgConnInst.GetChConnected()
+
+	// Configuring the access level and transaction isolation level.
 	settings := map[uint8]bool{
 		0: false,
 	}
 	dbPgConnInst.SetDBPGToolsList(settings)
+
+	// Getting a tool with the necessary isolation and access level to work with the database.
 	dbPgToolsInst := dbPgConnInst.GetDBPGTools(0, false)
+	if dbPgToolsInst == nil {
+		return
+	}
 
 	for {
 		if _, ok := dbPgToolsInst.Exec("INSERT INTO persons VALUES (1, 'testuser');"); !ok {
@@ -53,5 +61,5 @@ func main() {
 		}
 	}
 
-	<-stop
+	<-dbPgConnInst.GetChDisconnected()
 }
