@@ -71,8 +71,6 @@ func (d *DBPGConnector) SetDBPGToolsList(settings map[uint8]bool) {
 		d.dbPgToolsList = map[sql.TxOptions]*dbpgtools.DBPGTools{}
 	}
 
-	logger.DebugJ(d.lc, fmt.Sprint("SetDBPGToolsList"))
-
 	for isolation, ro := range settings {
 		if isolation > MaxTxIsolationLvl {
 			logger.ErrorJ(d.lc, fmt.Sprint("Wrong transaction isolation level: ", isolation))

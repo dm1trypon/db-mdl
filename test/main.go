@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/dm1trypon/db-mdl/dbpgconnector"
@@ -52,14 +53,35 @@ func main() {
 		return
 	}
 
-	for {
-		if _, ok := dbPgToolsInst.Exec("INSERT INTO persons VALUES (1, 'testuser');"); !ok {
-			time.Sleep(2 * time.Second)
-			continue
-		} else {
-			break
-		}
+	res, ok := dbPgToolsInst.Query("SELECT * FROM users;")
+	if !ok {
+		return
 	}
+
+	var username string
+	var id int64
+
+	val, ok := res[0]["username"]
+	if !ok {
+		return
+	}
+
+	username, ok = val.(string)
+	if !ok {
+		return
+	}
+
+	val, ok = res[0]["id"]
+	if !ok {
+		return
+	}
+
+	id, ok = val.(int64)
+	if !ok {
+		return
+	}
+
+	logger.InfoJ(LC, fmt.Sprint("username: ", username, " | id: ", id))
 
 	<-dbPgConnInst.GetChDisconnected()
 }
